@@ -2,12 +2,34 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
+// ─── Validation Helpers ───────────────────────────────
+const passwordRules = [
+    { label: 'At least 8 characters', test: (p) => p.length >= 8 },
+    { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
+    { label: 'One special symbol (!@#$...)', test: (p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p) },
+]
+
 export default function RegisterPage() {
     const navigate = useNavigate()
     const [step, setStep] = useState(1)
     const [form, setForm] = useState({ name: '', enrollment: '', department: '', batch: '', email: '', password: '' })
+    const [touched, setTouched] = useState({ email: false, password: false })
 
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+
+    // Email validation
+    const getEmailError = () => {
+        if (!form.email) return 'Email is required'
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(form.email)) return 'Please enter a valid email'
+        if (!form.email.toLowerCase().endsWith('@adaniuni.ac.in')) return 'Must use @adaniuni.ac.in email'
+        return ''
+    }
+    const emailError = touched.email ? getEmailError() : ''
+
+    // Password validation
+    const passChecks = passwordRules.map(r => ({ ...r, passed: r.test(form.password) }))
+    const allPassValid = passChecks.every(c => c.passed)
 
     const handleNext = (e) => {
         e.preventDefault()
@@ -20,10 +42,10 @@ export default function RegisterPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        if (!form.email || !form.password) {
-            toast.error('Please fill in email and password')
-            return
-        }
+        setTouched({ email: true, password: true })
+        const eErr = getEmailError()
+        if (eErr) { toast.error(eErr); return }
+        if (!allPassValid) { toast.error('Password does not meet requirements'); return }
         toast.success('Account created! Please login.')
         navigate('/login')
     }
@@ -159,10 +181,13 @@ export default function RegisterPage() {
                                         type="email"
                                         value={form.email}
                                         onChange={e => update('email', e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
-                                        placeholder="you@university.edu"
+                                        onBlur={() => setTouched(t => ({ ...t, email: true }))}
+                                        className={`w-full bg-gray-50 dark:bg-gray-800 border rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all ${emailError ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                                        placeholder="you@adaniuni.ac.in"
                                         required
                                     />
+                                    {emailError && <p className="text-xs text-red-500 flex items-center gap-1"><span className="material-symbols-outlined text-xs">error</span>{emailError}</p>}
+                                    {!emailError && <p className="text-xs text-gray-400">Must use @adaniuni.ac.in domain</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Password</label>
@@ -170,10 +195,23 @@ export default function RegisterPage() {
                                         type="password"
                                         value={form.password}
                                         onChange={e => update('password', e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
+                                        onBlur={() => setTouched(t => ({ ...t, password: true }))}
+                                        className={`w-full bg-gray-50 dark:bg-gray-800 border rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all ${touched.password && !allPassValid ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                                         placeholder="Create a strong password"
                                         required
                                     />
+                                    {/* Real-time password strength checklist */}
+                                    {form.password && (
+                                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 space-y-1.5">
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Password Requirements</p>
+                                            {passChecks.map((c, i) => (
+                                                <div key={i} className={`flex items-center gap-2 text-xs font-medium ${c.passed ? 'text-green-600' : 'text-red-500'}`}>
+                                                    <span className="material-symbols-outlined text-sm">{c.passed ? 'check_circle' : 'cancel'}</span>
+                                                    {c.label}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex gap-3 pt-4">
                                     <button type="button" onClick={() => setStep(1)} className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold py-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">Back</button>

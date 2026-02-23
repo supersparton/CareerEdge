@@ -1,8 +1,34 @@
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
-const handleExportData = () => {
-    const csv = `Department,Total Students,Placed,Percentage\nComputer Science,320,272,85%\nInformation Technology,250,195,78%\nElectronics,200,124,62%\nMechanical,280,151,54%\nMBA,195,140,72%`
+// ─── Mock Student Data ────────────────────────────────────
+const allStudents = [
+    { id: 1, name: 'Rahul Sharma', dept: 'Computer Science', status: 'placed', company: 'Goldman Sachs', package: 42.5 },
+    { id: 2, name: 'Priya Patel', dept: 'Computer Science', status: 'placed', company: 'Google', package: 56 },
+    { id: 3, name: 'Aman Gupta', dept: 'Computer Science', status: 'placed', company: 'Microsoft', package: 38 },
+    { id: 4, name: 'Sneha Reddy', dept: 'Computer Science', status: 'unplaced', company: null, package: 0 },
+    { id: 5, name: 'Arjun Singh', dept: 'Computer Science', status: 'placed', company: 'Amazon', package: 32 },
+    { id: 6, name: 'Neha Joshi', dept: 'Information Technology', status: 'placed', company: 'Adobe', package: 24 },
+    { id: 7, name: 'Vikram Mehta', dept: 'Information Technology', status: 'placed', company: 'Flipkart', package: 18 },
+    { id: 8, name: 'Riya Agarwal', dept: 'Information Technology', status: 'unplaced', company: null, package: 0 },
+    { id: 9, name: 'Karan Desai', dept: 'Information Technology', status: 'placed', company: 'TCS', package: 7 },
+    { id: 10, name: 'Ananya Nair', dept: 'Electronics', status: 'placed', company: 'Qualcomm', package: 22 },
+    { id: 11, name: 'Rohan Kumar', dept: 'Electronics', status: 'unplaced', company: null, package: 0 },
+    { id: 12, name: 'Divya Sharma', dept: 'Electronics', status: 'placed', company: 'Intel', package: 20 },
+    { id: 13, name: 'Manish Yadav', dept: 'Mechanical', status: 'placed', company: 'Tata Motors', package: 8 },
+    { id: 14, name: 'Pooja Mishra', dept: 'Mechanical', status: 'unplaced', company: null, package: 0 },
+    { id: 15, name: 'Aditya Verma', dept: 'Mechanical', status: 'placed', company: 'L&T', package: 6 },
+    { id: 16, name: 'Simran Kaur', dept: 'MBA', status: 'placed', company: 'McKinsey', package: 28 },
+    { id: 17, name: 'Harsh Pandey', dept: 'MBA', status: 'placed', company: 'Deloitte', package: 15 },
+    { id: 18, name: 'Meera Iyer', dept: 'MBA', status: 'unplaced', company: null, package: 0 },
+]
+
+const departments = ['All Departments', 'Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'MBA']
+
+const handleExportData = (filteredStudents) => {
+    const csv = `Name,Department,Status,Company,Package (LPA)\n` +
+        filteredStudents.map(s => `${s.name},${s.dept},${s.status},${s.company || 'N/A'},${s.package || 'N/A'}`).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -12,6 +38,41 @@ const handleExportData = () => {
 }
 
 export default function AdminDashboard() {
+    const [statusFilter, setStatusFilter] = useState('all')
+    const [deptFilter, setDeptFilter] = useState('All Departments')
+    const [searchQuery, setSearchQuery] = useState('')
+
+    // ─── Filtered Data ────────────────────────────────────
+    const filtered = useMemo(() => {
+        return allStudents.filter(s => {
+            const matchStatus = statusFilter === 'all' || s.status === statusFilter
+            const matchDept = deptFilter === 'All Departments' || s.dept === deptFilter
+            const matchSearch = !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.dept.toLowerCase().includes(searchQuery.toLowerCase()) || (s.company && s.company.toLowerCase().includes(searchQuery.toLowerCase()))
+            return matchStatus && matchDept && matchSearch
+        })
+    }, [statusFilter, deptFilter, searchQuery])
+
+    // ─── Computed Stats ───────────────────────────────────
+    const stats = useMemo(() => {
+        const total = filtered.length
+        const placed = filtered.filter(s => s.status === 'placed').length
+        const pending = total - placed
+        const pct = total ? Math.round((placed / total) * 100) : 0
+        const avgPkg = placed ? (filtered.filter(s => s.status === 'placed').reduce((sum, s) => sum + s.package, 0) / placed).toFixed(1) : 0
+        return { total, placed, pending, pct, avgPkg }
+    }, [filtered])
+
+    // ─── Department Progress ──────────────────────────────
+    const deptProgress = useMemo(() => {
+        const depts = ['Computer Science', 'Information Technology', 'Electronics', 'Mechanical', 'MBA']
+        return depts.map(dept => {
+            const deptStudents = allStudents.filter(s => s.dept === dept)
+            const deptPlaced = deptStudents.filter(s => s.status === 'placed').length
+            const pct = deptStudents.length ? Math.round((deptPlaced / deptStudents.length) * 100) : 0
+            return { dept, pct, placed: deptPlaced, total: deptStudents.length, color: pct >= 70 ? 'bg-green-500' : 'bg-amber-500', textColor: pct >= 70 ? 'text-green-600' : 'text-amber-600' }
+        })
+    }, [])
+
     return (
         <>
             {/* Welcome Banner */}
@@ -19,7 +80,7 @@ export default function AdminDashboard() {
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
                         <h2 className="text-3xl font-black tracking-tight">Good Morning, Coordinator!</h2>
-                        <p className="text-indigo-100 text-lg">Placement season is going well. 68% students placed so far.</p>
+                        <p className="text-indigo-100 text-lg">Placement season is going well. {stats.pct}% students placed so far.</p>
                     </div>
                     <div className="flex gap-3">
                         <Link to="/admin/analytics" className="bg-white text-indigo-600 px-6 py-3 rounded-lg font-bold text-sm hover:bg-opacity-90 transition-all shadow-lg">
@@ -30,14 +91,71 @@ export default function AdminDashboard() {
                 <div className="absolute -bottom-10 -right-10 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
             </div>
 
-            {/* Overview KPIs */}
+            {/* ─── Filter Bar ────────────────────────────────── */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 mb-6">
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Search */}
+                    <div className="flex-1 min-w-[200px]">
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                            <input
+                                type="text"
+                                placeholder="Search students, companies..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            />
+                        </div>
+                    </div>
+                    {/* Status Filter */}
+                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                        {[
+                            { value: 'all', label: 'All', icon: 'group' },
+                            { value: 'placed', label: 'Placed', icon: 'how_to_reg' },
+                            { value: 'unplaced', label: 'Unplaced', icon: 'pending' },
+                        ].map(f => (
+                            <button
+                                key={f.value}
+                                onClick={() => setStatusFilter(f.value)}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all ${statusFilter === f.value
+                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                            >
+                                <span className="material-symbols-outlined text-base">{f.icon}</span>
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Department Filter */}
+                    <select
+                        value={deptFilter}
+                        onChange={e => setDeptFilter(e.target.value)}
+                        className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    >
+                        {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    {/* Reset */}
+                    {(statusFilter !== 'all' || deptFilter !== 'All Departments' || searchQuery) && (
+                        <button
+                            onClick={() => { setStatusFilter('all'); setDeptFilter('All Departments'); setSearchQuery('') }}
+                            className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-sm">close</span>
+                            Clear Filters
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Overview KPIs (reactive) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 {[
-                    { icon: 'group', iconBg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600', label: 'Total Students', value: '1,245' },
-                    { icon: 'how_to_reg', iconBg: 'bg-green-50 dark:bg-green-900/20 text-green-600', label: 'Placed', value: '847', badge: '68%', badgeColor: 'text-green-500' },
-                    { icon: 'pending', iconBg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600', label: 'Pending', value: '398' },
+                    { icon: 'group', iconBg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600', label: 'Total Students', value: stats.total.toLocaleString() },
+                    { icon: 'how_to_reg', iconBg: 'bg-green-50 dark:bg-green-900/20 text-green-600', label: 'Placed', value: stats.placed.toLocaleString(), badge: `${stats.pct}%`, badgeColor: 'text-green-500' },
+                    { icon: 'pending', iconBg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600', label: 'Pending', value: stats.pending.toLocaleString() },
                     { icon: 'apartment', iconBg: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600', label: 'Companies', value: '64' },
-                    { icon: 'currency_rupee', iconBg: 'bg-indigo-50 dark:bg-indigo-900/20 text-primary', label: 'Avg. Package', value: '₹12.4L' },
+                    { icon: 'currency_rupee', iconBg: 'bg-indigo-50 dark:bg-indigo-900/20 text-primary', label: 'Avg. Package', value: `₹${stats.avgPkg}L` },
                 ].map(stat => (
                     <div key={stat.label} className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
@@ -51,6 +169,65 @@ export default function AdminDashboard() {
                     </div>
                 ))}
             </div>
+
+            {/* Filtered Student List (shown when filter is active) */}
+            {(statusFilter !== 'all' || deptFilter !== 'All Departments' || searchQuery) && (
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mb-8 overflow-hidden">
+                    <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <h4 className="text-lg font-bold flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">filter_list</span>
+                            Filtered Results
+                            <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full">{filtered.length} students</span>
+                        </h4>
+                        <button onClick={() => handleExportData(filtered)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            Export
+                        </button>
+                    </div>
+                    {filtered.length > 0 ? (
+                        <table className="w-full">
+                            <thead className="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Department</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Company</th>
+                                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Package</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {filtered.map(s => (
+                                    <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                                                    {s.name.split(' ').map(w => w[0]).join('')}
+                                                </div>
+                                                <span className="font-medium text-sm">{s.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-3 text-sm text-slate-600 dark:text-slate-400">{s.dept}</td>
+                                        <td className="px-5 py-3">
+                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${s.status === 'placed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                {s.status === 'placed' ? 'Placed' : 'Unplaced'}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-3 text-sm font-medium">{s.company || '—'}</td>
+                                        <td className="px-5 py-3 text-sm font-bold">{s.package ? `₹${s.package} LPA` : '—'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className="p-12 text-center">
+                            <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">search_off</span>
+                            <p className="text-slate-500 font-medium">No students match your filter criteria</p>
+                            <p className="text-sm text-slate-400">Try adjusting your filters</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Main Grid */}
             <div className="grid grid-cols-12 gap-8">
@@ -154,22 +331,23 @@ export default function AdminDashboard() {
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                         <h4 className="text-lg font-bold mb-6">Department-wise Placement Progress</h4>
                         <div className="space-y-4">
-                            {[
-                                { dept: 'Computer Science', pct: 85, color: 'bg-green-500', textColor: 'text-green-600' },
-                                { dept: 'Information Technology', pct: 78, color: 'bg-green-500', textColor: 'text-green-600' },
-                                { dept: 'Electronics', pct: 62, color: 'bg-amber-500', textColor: 'text-amber-600' },
-                                { dept: 'Mechanical', pct: 54, color: 'bg-amber-500', textColor: 'text-amber-600' },
-                                { dept: 'MBA', pct: 72, color: 'bg-green-500', textColor: 'text-green-600' },
-                            ].map(d => (
-                                <div key={d.dept}>
+                            {deptProgress.map(d => (
+                                <button
+                                    key={d.dept}
+                                    onClick={() => { setDeptFilter(d.dept); setStatusFilter('all'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                                    className={`w-full text-left p-3 rounded-lg transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 ${deptFilter === d.dept ? 'ring-2 ring-primary/30 bg-primary/5' : ''}`}
+                                >
                                     <div className="flex justify-between mb-2">
-                                        <span className="text-sm font-medium">{d.dept}</span>
+                                        <span className="text-sm font-medium flex items-center gap-2">
+                                            {d.dept}
+                                            <span className="text-xs text-slate-400 font-normal">({d.placed}/{d.total})</span>
+                                        </span>
                                         <span className={`text-sm font-bold ${d.textColor}`}>{d.pct}%</span>
                                     </div>
                                     <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <div className={`h-full ${d.color} rounded-full`} style={{ width: `${d.pct}%` }}></div>
+                                        <div className={`h-full ${d.color} rounded-full transition-all duration-500`} style={{ width: `${d.pct}%` }}></div>
                                     </div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -185,7 +363,7 @@ export default function AdminDashboard() {
                                 { icon: 'person_add', label: 'Add Student', to: '/admin/students' },
                                 { icon: 'domain_add', label: 'Add Company', to: '/admin/companies' },
                                 { icon: 'post_add', label: 'New Drive', to: '/admin/drives' },
-                                { icon: 'download', label: 'Export Data', to: '#', onClick: handleExportData },
+                                { icon: 'download', label: 'Export Data', to: '#', onClick: () => handleExportData(filtered) },
                             ].map(action => (
                                 <Link key={action.label} to={action.to} onClick={action.onClick ? (e) => { e.preventDefault(); action.onClick() } : undefined} className="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-primary/5 hover:border-primary/30 transition-colors">
                                     <span className="material-symbols-outlined text-primary">{action.icon}</span>
@@ -199,7 +377,7 @@ export default function AdminDashboard() {
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
                             <h4 className="font-bold">Today's Schedule</h4>
-                            <p className="text-xs text-slate-500 mt-1">Sunday, Feb 9, 2026</p>
+                            <p className="text-xs text-slate-500 mt-1">Sunday, Feb 23, 2026</p>
                         </div>
                         <div className="p-4 space-y-3">
                             <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/10 border-l-4 border-green-500">

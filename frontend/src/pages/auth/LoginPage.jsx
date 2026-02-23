@@ -3,21 +3,45 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 
+// ─── Validation Helpers ───────────────────────────────
+const validateEmail = (email, role) => {
+    if (!email) return 'Email is required'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) return 'Please enter a valid email address'
+    if ((role === 'student' || role === 'admin') && !email.toLowerCase().endsWith('@adaniuni.ac.in')) {
+        return 'Student & Admin must use @adaniuni.ac.in email'
+    }
+    return ''
+}
+
+const validatePassword = (password) => {
+    const errors = []
+    if (password.length < 8) errors.push('At least 8 characters')
+    if (!/[A-Z]/.test(password)) errors.push('At least one uppercase letter')
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) errors.push('At least one special symbol')
+    return errors
+}
+
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [role, setRole] = useState('student')
     const [showPassword, setShowPassword] = useState(false)
     const [remember, setRemember] = useState(false)
+    const [touched, setTouched] = useState({ email: false, password: false })
     const { login } = useAuth()
     const navigate = useNavigate()
 
+    const emailError = touched.email ? validateEmail(email, role) : ''
+    const passwordErrors = touched.password ? validatePassword(password) : []
+
     const handleSubmit = (e) => {
         e.preventDefault()
-        if (!email || !password) {
-            toast.error('Please fill in all fields')
-            return
-        }
+        setTouched({ email: true, password: true })
+        const eErr = validateEmail(email, role)
+        const pErrs = validatePassword(password)
+        if (eErr) { toast.error(eErr); return }
+        if (pErrs.length > 0) { toast.error(pErrs[0]); return }
         login(role)
         toast.success(`Welcome! Logged in as ${role}`)
         navigate(`/${role}`)
@@ -123,11 +147,14 @@ export default function LoginPage() {
                                         type="email"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
-                                        placeholder="e.g. name@college.edu"
+                                        onBlur={() => setTouched(t => ({ ...t, email: true }))}
+                                        className={`w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 dark:text-white placeholder:text-slate-400 ${emailError ? 'border-red-400' : 'border-slate-200 dark:border-slate-700'}`}
+                                        placeholder={role === 'recruiter' ? 'e.g. name@company.com' : 'e.g. name@adaniuni.ac.in'}
                                         required
                                     />
                                 </div>
+                                {emailError && <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><span className="material-symbols-outlined text-xs">error</span>{emailError}</p>}
+                                {!emailError && role !== 'recruiter' && <p className="text-xs text-slate-400 mt-1.5">Must use @adaniuni.ac.in domain</p>}
                             </div>
                             <div>
                                 <div className="flex justify-between items-center mb-2">
@@ -140,7 +167,8 @@ export default function LoginPage() {
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
-                                        className="w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                                        onBlur={() => setTouched(t => ({ ...t, password: true }))}
+                                        className={`w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-slate-900 dark:text-white placeholder:text-slate-400 ${passwordErrors.length > 0 ? 'border-red-400' : 'border-slate-200 dark:border-slate-700'}`}
                                         placeholder="••••••••"
                                         required
                                     />
@@ -152,6 +180,15 @@ export default function LoginPage() {
                                         <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                                     </button>
                                 </div>
+                                {passwordErrors.length > 0 && (
+                                    <div className="mt-1.5 space-y-0.5">
+                                        {passwordErrors.map((err, i) => (
+                                            <p key={i} className="text-xs text-red-500 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-xs">close</span>{err}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="flex items-center gap-2">
                                 <input
