@@ -1,4 +1,15 @@
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
+
+const handleExportData = () => {
+    const csv = `Department,Total Students,Placed,Percentage\nComputer Science,320,272,85%\nInformation Technology,250,195,78%\nElectronics,200,124,62%\nMechanical,280,151,54%\nMBA,195,140,72%`
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'placement_data_export.csv'; a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Data exported successfully!', { icon: '📊' })
+}
 
 export default function AdminDashboard() {
     return (
@@ -174,9 +185,9 @@ export default function AdminDashboard() {
                                 { icon: 'person_add', label: 'Add Student', to: '/admin/students' },
                                 { icon: 'domain_add', label: 'Add Company', to: '/admin/companies' },
                                 { icon: 'post_add', label: 'New Drive', to: '/admin/drives' },
-                                { icon: 'download', label: 'Export Data', to: '#' },
+                                { icon: 'download', label: 'Export Data', to: '#', onClick: handleExportData },
                             ].map(action => (
-                                <Link key={action.label} to={action.to} className="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-primary/5 hover:border-primary/30 transition-colors">
+                                <Link key={action.label} to={action.to} onClick={action.onClick ? (e) => { e.preventDefault(); action.onClick() } : undefined} className="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-primary/5 hover:border-primary/30 transition-colors">
                                     <span className="material-symbols-outlined text-primary">{action.icon}</span>
                                     <span className="text-xs font-medium text-center">{action.label}</span>
                                 </Link>

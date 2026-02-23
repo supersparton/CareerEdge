@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom'
-import { recruiterDashboardStats, recruiterActiveDrives, recruiterUpcomingInterviews } from '../../data/mockData'
+import { useState } from 'react'
+import toast from 'react-hot-toast'
+import { recruiterDashboardStats } from '../../data/mockData'
 
 export default function RecruiterDashboard() {
+    const [offersSent, setOffersSent] = useState(new Set())
+
     const stats = [
         { label: 'Active Drives', value: recruiterDashboardStats.activeDrives, icon: 'work', bg: 'bg-blue-50 dark:bg-blue-900/20', color: 'text-blue-600', badge: 'Active' },
         { label: 'Total Applications', value: '1,248', icon: 'group', bg: 'bg-indigo-50 dark:bg-indigo-900/20', color: 'text-primary', badge: '+45 today' },
@@ -24,9 +28,9 @@ export default function RecruiterDashboard() {
     ]
 
     const todayInterviews = [
-        { name: 'Rahul Sharma', role: 'SDE-1', time: '10:00 AM', status: 'join' },
-        { name: 'Priya Patel', role: 'Data Analyst', time: '11:30 AM', status: 'In 2hrs' },
-        { name: 'Amit Kumar', role: 'SDE-1', time: '2:00 PM', status: 'In 4hrs' },
+        { name: 'Rahul Sharma', role: 'SDE-1', time: '10:00 AM', status: 'join', link: 'https://meet.google.com/abc-defg-hij' },
+        { name: 'Priya Patel', role: 'Data Analyst', time: '11:30 AM', status: 'In 2hrs', link: 'https://meet.google.com/klm-nopq-rst' },
+        { name: 'Amit Kumar', role: 'SDE-1', time: '2:00 PM', status: 'In 4hrs', link: 'https://meet.google.com/uvw-xyza-bcd' },
     ]
 
     const topCandidates = [
@@ -34,6 +38,20 @@ export default function RecruiterDashboard() {
         { name: 'Karan Mehta', info: 'CGPA 8.9 • NIT Trichy', score: '95%' },
         { name: 'Neha Joshi', info: 'CGPA 9.0 • BITS Pilani', score: '94%' },
     ]
+
+    const handleJoin = (intv) => {
+        window.open(intv.link, '_blank')
+        toast.success(`Joining interview with ${intv.name}`, { icon: '📹' })
+    }
+
+    const handleSendOffer = (candidate) => {
+        if (offersSent.has(candidate.name)) {
+            toast('Offer already sent to ' + candidate.name, { icon: '📨' })
+            return
+        }
+        setOffersSent(prev => new Set([...prev, candidate.name]))
+        toast.success(`Offer sent to ${candidate.name}!`, { icon: '🎉' })
+    }
 
     return (
         <div>
@@ -127,18 +145,20 @@ export default function RecruiterDashboard() {
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                             <h4 className="font-bold">Today's Interviews</h4>
-                            <span className="size-6 bg-primary rounded-full text-white text-xs font-bold flex items-center justify-center">4</span>
+                            <span className="size-6 bg-primary rounded-full text-white text-xs font-bold flex items-center justify-center">{todayInterviews.length}</span>
                         </div>
                         <div className="p-4 space-y-3">
                             {todayInterviews.map((intv, i) => (
                                 <div key={i} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center gap-3">
-                                    <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                    <div className="size-10 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                                        {intv.name.split(' ').map(n => n[0]).join('')}
+                                    </div>
                                     <div className="flex-1">
                                         <p className="text-sm font-bold">{intv.name}</p>
                                         <p className="text-xs text-slate-500">{intv.role} • {intv.time}</p>
                                     </div>
                                     {intv.status === 'join' ? (
-                                        <button className="px-3 py-1 bg-primary text-white text-xs font-bold rounded">Join</button>
+                                        <button onClick={() => handleJoin(intv)} className="px-3 py-1 bg-primary text-white text-xs font-bold rounded hover:bg-blue-700 transition-colors">Join</button>
                                     ) : (
                                         <span className="text-xs text-slate-500 font-medium">{intv.status}</span>
                                     )}
@@ -146,7 +166,7 @@ export default function RecruiterDashboard() {
                             ))}
                         </div>
                         <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-                            <button className="w-full text-center text-sm font-bold text-primary hover:underline">View Full Schedule</button>
+                            <Link to="/recruiter/interviews" className="w-full block text-center text-sm font-bold text-primary hover:underline">View Full Schedule</Link>
                         </div>
                     </div>
 
@@ -162,10 +182,14 @@ export default function RecruiterDashboard() {
                                 <span className="material-symbols-outlined text-primary">person_search</span>
                                 <span className="text-xs font-medium text-center">Review Apps</span>
                             </Link>
-                            <Link to="#" className="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-primary/5 hover:border-primary/30 transition-colors">
+                            <button onClick={() => {
+                                topCandidates.forEach(c => {
+                                    if (!offersSent.has(c.name)) handleSendOffer(c)
+                                })
+                            }} className="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-primary/5 hover:border-primary/30 transition-colors">
                                 <span className="material-symbols-outlined text-primary">mail</span>
                                 <span className="text-xs font-medium text-center">Send Offers</span>
-                            </Link>
+                            </button>
                             <Link to="/recruiter/company-profile" className="flex flex-col items-center gap-2 p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-primary/5 hover:border-primary/30 transition-colors">
                                 <span className="material-symbols-outlined text-primary">edit</span>
                                 <span className="text-xs font-medium text-center">Edit Profile</span>
@@ -179,12 +203,20 @@ export default function RecruiterDashboard() {
                         <div className="space-y-3">
                             {topCandidates.map((c, i) => (
                                 <div key={i} className="flex items-center gap-3">
-                                    <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                    <div className="size-10 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                                        {c.name.split(' ').map(n => n[0]).join('')}
+                                    </div>
                                     <div className="flex-1">
                                         <p className="text-sm font-bold">{c.name}</p>
                                         <p className="text-xs text-slate-500">{c.info}</p>
                                     </div>
-                                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">{c.score}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">{c.score}</span>
+                                        <button onClick={() => handleSendOffer(c)}
+                                            className={`px-2 py-1 text-xs font-bold rounded transition-colors ${offersSent.has(c.name) ? 'bg-slate-100 text-slate-400 cursor-default' : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'}`}>
+                                            {offersSent.has(c.name) ? 'Sent ✓' : 'Offer'}
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

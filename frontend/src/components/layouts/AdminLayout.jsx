@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import toast from 'react-hot-toast'
 
 const navItems = [
     { to: '/admin', label: 'Dashboard', icon: 'dashboard', end: true },
@@ -92,18 +93,18 @@ export default function AdminLayout() {
                     <div className="flex items-center gap-4">
                         {currentHeader.actions === 'companies' && (
                             <>
-                                <button className="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-sm font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                                <button onClick={() => { toast.success('Companies exported!', { icon: '📥' }) }} className="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-sm font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
                                     <span className="material-symbols-outlined text-sm">download</span>
                                     Export
                                 </button>
-                                <button className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2">
+                                <button onClick={() => { navigate('/admin/companies') }} className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2">
                                     <span className="material-symbols-outlined text-sm">add</span>
                                     Add Company
                                 </button>
                             </>
                         )}
                         {currentHeader.actions === 'analytics' && (
-                            <button className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2">
+                            <button onClick={() => { toast.success('Analytics report exported!', { icon: '📊' }) }} className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2">
                                 <span className="material-symbols-outlined text-sm">download</span>
                                 Export Report
                             </button>
@@ -112,7 +113,7 @@ export default function AdminLayout() {
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                             <input type="text" placeholder="Quick search..." className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20 w-64" />
                         </div>
-                        <button className="size-10 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 relative">
+                        <button onClick={() => { toast('No new notifications', { icon: '🔔' }) }} className="size-10 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 relative">
                             <span className="material-symbols-outlined">notifications</span>
                             <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-background-dark"></span>
                         </button>

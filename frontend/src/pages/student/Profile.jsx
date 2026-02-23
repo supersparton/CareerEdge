@@ -1,4 +1,77 @@
+import toast from 'react-hot-toast'
+
 export default function Profile() {
+    const handleShareProfile = () => {
+        const profileUrl = window.location.origin + '/student/profile'
+        navigator.clipboard.writeText(profileUrl).then(() => {
+            toast.success('Profile link copied to clipboard!')
+        }).catch(() => {
+            toast.error('Failed to copy link')
+        })
+    }
+
+    const handleDownloadResume = () => {
+        const resumeContent = `
+═══════════════════════════════════════════════════
+                    PRIYA SHARMA
+           Full Stack Developer | B.Tech CS
+═══════════════════════════════════════════════════
+
+CONTACT
+───────────────────────────────────────────────────
+Email:    priya.s@university.edu
+Phone:    +91 98765 43210
+Location: Mumbai, India
+LinkedIn: linkedin.com/in/priyasharma
+GitHub:   github.com/priyasharma
+
+EDUCATION
+───────────────────────────────────────────────────
+B.Tech in Computer Science
+University Institute of Technology | 2020 - 2024
+CPI: 8.9/10 | Class Rank: #12 | Attendance: 94%
+
+TECHNICAL SKILLS
+───────────────────────────────────────────────────
+Languages:    Java, JavaScript, Python, C++
+Frameworks:   React.js, Node.js, Express, Tailwind CSS
+Tools:        Git & GitHub, Docker, AWS (Basic), Postman
+
+PROJECTS
+───────────────────────────────────────────────────
+E-commerce Microservices Platform
+  • Built with Spring Boot microservices architecture
+  • Features: product catalog, order management, payment gateway
+  • Tech: Java, Spring Boot, MySQL
+
+AI Support Chatbot
+  • NLP-based chatbot for automated customer support
+  • 85% accuracy in intent recognition
+  • Tech: Python, TensorFlow, NLP
+
+CODING PROFILES
+───────────────────────────────────────────────────
+LeetCode:      450+ problems solved (Top 5%)
+GeeksForGeeks: 1200 problems (Inst. Rank #3)
+GitHub:        45 Repositories (Active contributor)
+
+PLACEMENT STATUS
+───────────────────────────────────────────────────
+Status: Shortlisted (2 Active Companies)
+        `.trim()
+
+        const blob = new Blob([resumeContent], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'Priya_Sharma_Resume.txt'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        toast.success('Resume downloaded!')
+    }
+
     return (
         <>
             {/* Breadcrumbs */}
@@ -46,11 +119,17 @@ export default function Profile() {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                        <button className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                        <button
+                            onClick={handleShareProfile}
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                        >
                             <span className="material-symbols-outlined text-[20px]">share</span>
                             Share Profile
                         </button>
-                        <button className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
+                        <button
+                            onClick={handleDownloadResume}
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+                        >
                             <span className="material-symbols-outlined text-[20px]">download</span>
                             Download Resume
                         </button>

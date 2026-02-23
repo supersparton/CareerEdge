@@ -1,7 +1,30 @@
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 export default function ResumeBuilder() {
     const [activeSection, setActiveSection] = useState('personal')
+
+    const [personal, setPersonal] = useState({
+        name: 'Rahul Sharma', email: 'rahul.sharma@university.edu', phone: '+91 98765 43210',
+        linkedin: 'linkedin.com/in/rahulsharma', github: 'github.com/rahulsharma', portfolio: '',
+        summary: 'Computer Science student with strong problem-solving skills and experience in full-stack web development. Passionate about building scalable applications.'
+    })
+
+    const [education, setEducation] = useState([
+        { id: 1, degree: 'B.Tech Computer Science', institution: 'IIT Delhi', cgpa: '9.2', year: '2022-2026' }
+    ])
+
+    const [experience, setExperience] = useState([
+        { id: 1, position: 'SDE Intern', company: 'Microsoft', duration: 'May 2025 - Jul 2025', location: 'Hyderabad', description: 'Worked on Azure cloud services...' }
+    ])
+
+    const [techSkills, setTechSkills] = useState(['React.js', 'Node.js', 'Python', 'Java', 'MongoDB', 'PostgreSQL', 'AWS', 'Docker'])
+    const [softSkills, setSoftSkills] = useState(['Leadership', 'Communication', 'Teamwork', 'Problem Solving'])
+    const [newSkill, setNewSkill] = useState('')
+
+    const [projects, setProjects] = useState([
+        { id: 1, name: 'E-Commerce Platform', tech: 'React, Node.js, MongoDB', link: 'github.com/rahul/ecom', description: 'Full-stack e-commerce with payment integration' }
+    ])
 
     const sections = [
         { id: 'personal', label: 'Personal Info', icon: 'person' },
@@ -10,6 +33,73 @@ export default function ResumeBuilder() {
         { id: 'skills', label: 'Skills', icon: 'code' },
         { id: 'projects', label: 'Projects', icon: 'terminal' },
     ]
+
+    const handleDownloadPDF = () => {
+        const lines = [
+            personal.name.toUpperCase(),
+            `${personal.email} | ${personal.phone} | ${personal.linkedin} | ${personal.github}`,
+            '', '--- EDUCATION ---',
+            ...education.map(e => `${e.degree} — ${e.institution} (${e.year})\nCGPA: ${e.cgpa}`),
+            '', '--- EXPERIENCE ---',
+            ...experience.map(e => `${e.position} — ${e.company} (${e.duration})\n${e.location}\n${e.description}`),
+            '', '--- SKILLS ---',
+            `Technical: ${techSkills.join(', ')}`,
+            `Soft Skills: ${softSkills.join(', ')}`,
+            '', '--- PROJECTS ---',
+            ...projects.map(p => `${p.name} (${p.tech})\n${p.description}\n${p.link}`),
+        ]
+        const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = `${personal.name.replace(/\s+/g, '_')}_Resume.txt`
+        a.click(); URL.revokeObjectURL(url)
+        toast.success('Resume downloaded!', { icon: '📄' })
+    }
+
+    const handleAIOptimize = () => {
+        toast.loading('AI analyzing your resume...', { duration: 1500 })
+        setTimeout(() => {
+            toast.success('✨ AI Optimization complete! ATS Score: 95%', { duration: 3000 })
+        }, 1600)
+    }
+
+    const addSkill = (e) => {
+        if (e.key === 'Enter' && newSkill.trim()) {
+            e.preventDefault()
+            if (!techSkills.includes(newSkill.trim())) {
+                setTechSkills(prev => [...prev, newSkill.trim()])
+                toast.success(`"${newSkill.trim()}" added!`)
+            }
+            setNewSkill('')
+        }
+    }
+
+    const removeTechSkill = (skill) => {
+        setTechSkills(prev => prev.filter(s => s !== skill))
+    }
+
+    const removeSoftSkill = (skill) => {
+        setSoftSkills(prev => prev.filter(s => s !== skill))
+    }
+
+    const addEducation = () => {
+        setEducation(prev => [...prev, { id: Date.now(), degree: '', institution: '', cgpa: '', year: '' }])
+        toast.success('Education entry added')
+    }
+
+    const addExperience = () => {
+        setExperience(prev => [...prev, { id: Date.now(), position: '', company: '', duration: '', location: '', description: '' }])
+        toast.success('Experience entry added')
+    }
+
+    const addProject = () => {
+        setProjects(prev => [...prev, { id: Date.now(), name: '', tech: '', link: '', description: '' }])
+        toast.success('Project entry added')
+    }
+
+    const updateEdu = (id, key, val) => setEducation(prev => prev.map(e => e.id === id ? { ...e, [key]: val } : e))
+    const updateExp = (id, key, val) => setExperience(prev => prev.map(e => e.id === id ? { ...e, [key]: val } : e))
+    const updateProj = (id, key, val) => setProjects(prev => prev.map(p => p.id === id ? { ...p, [key]: val } : p))
 
     return (
         <div>
@@ -20,11 +110,11 @@ export default function ResumeBuilder() {
                     <p className="text-slate-500 mt-1">AI-powered resume builder tailored for placements</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 rounded-lg text-sm font-bold flex items-center gap-2">
+                    <button onClick={handleDownloadPDF} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors">
                         <span className="material-symbols-outlined text-[18px]">download</span>
                         Download PDF
                     </button>
-                    <button className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-lg shadow-primary/20 flex items-center gap-2">
+                    <button onClick={handleAIOptimize} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-lg shadow-primary/20 flex items-center gap-2 hover:bg-primary/90 transition-colors">
                         <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
                         AI Optimize
                     </button>
@@ -44,69 +134,60 @@ export default function ResumeBuilder() {
                         ))}
                     </div>
 
-                    {/* Personal Info Section */}
+                    {/* Personal Info */}
                     {activeSection === 'personal' && (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                             <h3 className="text-lg font-bold mb-6">Personal Information</h3>
                             <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
-                                    <input type="text" defaultValue="Rahul Sharma" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Email</label>
-                                    <input type="email" defaultValue="rahul.sharma@university.edu" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Phone</label>
-                                    <input type="tel" defaultValue="+91 98765 43210" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">LinkedIn</label>
-                                    <input type="url" defaultValue="linkedin.com/in/rahulsharma" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">GitHub</label>
-                                    <input type="url" defaultValue="github.com/rahulsharma" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Portfolio</label>
-                                    <input type="url" placeholder="Optional" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                </div>
+                                {[
+                                    { label: 'Full Name', key: 'name', type: 'text' },
+                                    { label: 'Email', key: 'email', type: 'email' },
+                                    { label: 'Phone', key: 'phone', type: 'tel' },
+                                    { label: 'LinkedIn', key: 'linkedin', type: 'url' },
+                                    { label: 'GitHub', key: 'github', type: 'url' },
+                                    { label: 'Portfolio', key: 'portfolio', type: 'url' },
+                                ].map(f => (
+                                    <div key={f.key}>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{f.label}</label>
+                                        <input type={f.type} value={personal[f.key]} onChange={e => setPersonal(p => ({ ...p, [f.key]: e.target.value }))} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    </div>
+                                ))}
                             </div>
                             <div className="mt-6">
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Professional Summary</label>
-                                <textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm resize-none h-24" defaultValue="Computer Science student with strong problem-solving skills and experience in full-stack web development. Passionate about building scalable applications."></textarea>
+                                <textarea className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm resize-none h-24" value={personal.summary} onChange={e => setPersonal(p => ({ ...p, summary: e.target.value }))}></textarea>
                             </div>
                         </div>
                     )}
 
-                    {/* Education Section */}
+                    {/* Education */}
                     {activeSection === 'education' && (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                             <h3 className="text-lg font-bold mb-6">Education</h3>
                             <div className="space-y-4">
-                                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Degree</label>
-                                            <input type="text" defaultValue="B.Tech Computer Science" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Institution</label>
-                                            <input type="text" defaultValue="IIT Delhi" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">CGPA / Percentage</label>
-                                            <input type="text" defaultValue="9.2" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Year</label>
-                                            <input type="text" defaultValue="2022-2026" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                {education.map(edu => (
+                                    <div key={edu.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Degree</label>
+                                                <input type="text" value={edu.degree} onChange={e => updateEdu(edu.id, 'degree', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Institution</label>
+                                                <input type="text" value={edu.institution} onChange={e => updateEdu(edu.id, 'institution', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">CGPA / Percentage</label>
+                                                <input type="text" value={edu.cgpa} onChange={e => updateEdu(edu.id, 'cgpa', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Year</label>
+                                                <input type="text" value={edu.year} onChange={e => updateEdu(edu.id, 'year', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <button className="w-full p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                ))}
+                                <button onClick={addEducation} className="w-full p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">add</span>
                                     Add Education
                                 </button>
@@ -114,36 +195,38 @@ export default function ResumeBuilder() {
                         </div>
                     )}
 
-                    {/* Experience Section */}
+                    {/* Experience */}
                     {activeSection === 'experience' && (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                             <h3 className="text-lg font-bold mb-6">Experience</h3>
                             <div className="space-y-4">
-                                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Position</label>
-                                            <input type="text" defaultValue="SDE Intern" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                {experience.map(exp => (
+                                    <div key={exp.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Position</label>
+                                                <input type="text" value={exp.position} onChange={e => updateExp(exp.id, 'position', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Company</label>
+                                                <input type="text" value={exp.company} onChange={e => updateExp(exp.id, 'company', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Duration</label>
+                                                <input type="text" value={exp.duration} onChange={e => updateExp(exp.id, 'duration', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Location</label>
+                                                <input type="text" value={exp.location} onChange={e => updateExp(exp.id, 'location', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Company</label>
-                                            <input type="text" defaultValue="Microsoft" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Duration</label>
-                                            <input type="text" defaultValue="May 2025 - Jul 2025" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Location</label>
-                                            <input type="text" defaultValue="Hyderabad" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <div className="mt-3">
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Description</label>
+                                            <textarea className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm resize-none h-20" value={exp.description} onChange={e => updateExp(exp.id, 'description', e.target.value)}></textarea>
                                         </div>
                                     </div>
-                                    <div className="mt-3">
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Description</label>
-                                        <textarea className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm resize-none h-20" defaultValue="Worked on Azure cloud services..."></textarea>
-                                    </div>
-                                </div>
-                                <button className="w-full p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                ))}
+                                <button onClick={addExperience} className="w-full p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">add</span>
                                     Add Experience
                                 </button>
@@ -151,7 +234,7 @@ export default function ResumeBuilder() {
                         </div>
                     )}
 
-                    {/* Skills Section */}
+                    {/* Skills */}
                     {activeSection === 'skills' && (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                             <h3 className="text-lg font-bold mb-6">Skills</h3>
@@ -159,22 +242,22 @@ export default function ResumeBuilder() {
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Technical Skills</label>
                                     <div className="flex flex-wrap gap-2 mb-3">
-                                        {['React.js', 'Node.js', 'Python', 'Java', 'MongoDB', 'PostgreSQL', 'AWS', 'Docker'].map(skill => (
+                                        {techSkills.map(skill => (
                                             <span key={skill} className="px-3 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-lg flex items-center gap-1">
                                                 {skill}
-                                                <button className="text-primary/50 hover:text-red-500">×</button>
+                                                <button onClick={() => removeTechSkill(skill)} className="text-primary/50 hover:text-red-500 transition-colors ml-1">×</button>
                                             </span>
                                         ))}
                                     </div>
-                                    <input type="text" placeholder="Add a skill..." className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                    <input type="text" placeholder="Type a skill and press Enter..." value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={addSkill} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Soft Skills</label>
                                     <div className="flex flex-wrap gap-2 mb-3">
-                                        {['Leadership', 'Communication', 'Teamwork', 'Problem Solving'].map(skill => (
+                                        {softSkills.map(skill => (
                                             <span key={skill} className="px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg flex items-center gap-1">
                                                 {skill}
-                                                <button className="text-green-400 hover:text-red-500">×</button>
+                                                <button onClick={() => removeSoftSkill(skill)} className="text-green-400 hover:text-red-500 transition-colors ml-1">×</button>
                                             </span>
                                         ))}
                                     </div>
@@ -183,32 +266,34 @@ export default function ResumeBuilder() {
                         </div>
                     )}
 
-                    {/* Projects Section */}
+                    {/* Projects */}
                     {activeSection === 'projects' && (
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                             <h3 className="text-lg font-bold mb-6">Projects</h3>
                             <div className="space-y-4">
-                                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="col-span-2">
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Project Name</label>
-                                            <input type="text" defaultValue="E-Commerce Platform" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                {projects.map(proj => (
+                                    <div key={proj.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="col-span-2">
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Project Name</label>
+                                                <input type="text" value={proj.name} onChange={e => updateProj(proj.id, 'name', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Technologies</label>
+                                                <input type="text" value={proj.tech} onChange={e => updateProj(proj.id, 'tech', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-500 mb-1">Link</label>
+                                                <input type="url" value={proj.link} onChange={e => updateProj(proj.id, 'link', e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Technologies</label>
-                                            <input type="text" defaultValue="React, Node.js, MongoDB" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Link</label>
-                                            <input type="url" defaultValue="github.com/rahul/ecom" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                        <div className="mt-3">
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Description</label>
+                                            <textarea className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm resize-none h-16" value={proj.description} onChange={e => updateProj(proj.id, 'description', e.target.value)}></textarea>
                                         </div>
                                     </div>
-                                    <div className="mt-3">
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Description</label>
-                                        <textarea className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm resize-none h-16" defaultValue="Full-stack e-commerce with payment integration"></textarea>
-                                    </div>
-                                </div>
-                                <button className="w-full p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
+                                ))}
+                                <button onClick={addProject} className="w-full p-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">add</span>
                                     Add Project
                                 </button>
@@ -231,28 +316,46 @@ export default function ResumeBuilder() {
                         {/* Mini Resume Preview */}
                         <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-6 bg-white dark:bg-slate-800 text-[10px] leading-relaxed">
                             <div className="text-center border-b border-slate-200 pb-3 mb-3">
-                                <h2 className="text-sm font-black">RAHUL SHARMA</h2>
-                                <p className="text-slate-500">rahul.sharma@university.edu | +91 98765 43210 | LinkedIn | GitHub</p>
+                                <h2 className="text-sm font-black">{personal.name.toUpperCase()}</h2>
+                                <p className="text-slate-500">{personal.email} | {personal.phone} | {personal.linkedin} | {personal.github}</p>
                             </div>
-                            <div className="mb-3">
-                                <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Education</h3>
-                                <p className="font-bold">B.Tech Computer Science — IIT Delhi (2022–2026)</p>
-                                <p className="text-slate-500">CGPA: 9.2/10</p>
-                            </div>
-                            <div className="mb-3">
-                                <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Experience</h3>
-                                <p className="font-bold">SDE Intern — Microsoft (May–Jul 2025)</p>
-                                <p className="text-slate-500">Worked on Azure cloud services...</p>
-                            </div>
+                            {education.length > 0 && (
+                                <div className="mb-3">
+                                    <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Education</h3>
+                                    {education.map(e => (
+                                        <div key={e.id}>
+                                            <p className="font-bold">{e.degree || 'Degree'} — {e.institution || 'Institution'} ({e.year || 'Year'})</p>
+                                            <p className="text-slate-500">CGPA: {e.cgpa || '-'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {experience.length > 0 && (
+                                <div className="mb-3">
+                                    <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Experience</h3>
+                                    {experience.map(e => (
+                                        <div key={e.id}>
+                                            <p className="font-bold">{e.position || 'Position'} — {e.company || 'Company'} ({e.duration || 'Duration'})</p>
+                                            <p className="text-slate-500">{e.description || 'Description'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <div className="mb-3">
                                 <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Skills</h3>
-                                <p className="text-slate-500">React.js, Node.js, Python, Java, MongoDB, PostgreSQL, AWS, Docker</p>
+                                <p className="text-slate-500">{techSkills.join(', ')}</p>
                             </div>
-                            <div>
-                                <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Projects</h3>
-                                <p className="font-bold">E-Commerce Platform (React, Node.js, MongoDB)</p>
-                                <p className="text-slate-500">Full-stack e-commerce with payment integration</p>
-                            </div>
+                            {projects.length > 0 && (
+                                <div>
+                                    <h3 className="text-[9px] font-black uppercase text-primary tracking-widest mb-1">Projects</h3>
+                                    {projects.map(p => (
+                                        <div key={p.id}>
+                                            <p className="font-bold">{p.name || 'Project'} ({p.tech || 'Tech'})</p>
+                                            <p className="text-slate-500">{p.description || 'Description'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* AI Suggestions */}

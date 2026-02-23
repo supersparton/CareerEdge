@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
+
 export default function Analytics() {
+    const navigate = useNavigate()
     const departments = [
         { name: 'CSE', percent: 95, opacity: '' },
         { name: 'ECE', percent: 82, opacity: '/80' },
@@ -168,12 +172,12 @@ export default function Analytics() {
                                         <span className="text-[10px] font-bold text-slate-400">3h ago</span>
                                     </div>
                                     <p className="text-sm text-slate-600 dark:text-slate-400 leading-snug">New recruitment drive by <span className="font-semibold text-slate-900 dark:text-slate-100">Atlassian</span> scheduled for Oct 22nd.</p>
-                                    <button className="mt-3 text-xs font-bold text-primary hover:underline">View Schedule →</button>
+                                    <button onClick={() => navigate('/admin/drives')} className="mt-3 text-xs font-bold text-primary hover:underline">View Schedule →</button>
                                 </div>
                             </div>
                         </div>
                         <div className="p-6 border-t border-slate-200 dark:border-slate-800 text-center">
-                            <button className="text-sm font-bold text-slate-500 hover:text-primary transition-colors">View All Activities</button>
+                            <button onClick={() => toast.success('Showing all placement activities', { icon: '📋' })} className="text-sm font-bold text-slate-500 hover:text-primary transition-colors">View All Activities</button>
                         </div>
                     </div>
                 </div>
@@ -183,7 +187,7 @@ export default function Analytics() {
             <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <h4 className="text-lg font-bold">Recent Company Visits</h4>
-                    <button className="text-sm text-primary font-bold">View Pipeline</button>
+                    <button onClick={() => toast.success('Pipeline view loading...', { icon: '📊' })} className="text-sm text-primary font-bold">View Pipeline</button>
                 </div>
                 <table className="w-full text-left">
                     <thead>

@@ -1,12 +1,19 @@
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { recruiterApplications } from '../../data/mockData'
 
 export default function ApplicationReview() {
     const [selected, setSelected] = useState(0)
     const [filter, setFilter] = useState('All')
-    const candidate = recruiterApplications[selected]
+    const [applications, setApplications] = useState(recruiterApplications.map(app => ({ ...app, appStatus: 'Pending' })))
+    const [noteText, setNoteText] = useState('')
+    const [savedNotes, setSavedNotes] = useState({})
+
+    const candidate = applications[selected]
 
     const filters = ['All', 'Pending', 'Shortlisted', 'Rejected']
+
+    const filteredApps = filter === 'All' ? applications : applications.filter(a => a.appStatus === filter)
 
     const skills = [
         { name: 'React.js', level: 'Expert', pct: 95, color: 'bg-primary' },
@@ -34,6 +41,64 @@ export default function ApplicationReview() {
         { label: 'Wed, Oct 24, 11:00 AM', primary: false },
     ]
 
+    const handleShortlist = () => {
+        setApplications(prev => prev.map((app, i) => i === selected ? { ...app, appStatus: 'Shortlisted' } : app))
+        toast.success(`${candidate.name} shortlisted!`, { icon: '✅' })
+    }
+
+    const handleReject = () => {
+        setApplications(prev => prev.map((app, i) => i === selected ? { ...app, appStatus: 'Rejected' } : app))
+        toast(`${candidate.name} rejected`, { icon: '❌' })
+    }
+
+    const handleScheduleSlot = (slot) => {
+        toast.success(`Interview scheduled: ${slot.label} with ${candidate.name}`, { icon: '📅', duration: 4000 })
+    }
+
+    const handleSaveNote = () => {
+        if (!noteText.trim()) {
+            toast.error('Please write a note first')
+            return
+        }
+        setSavedNotes(prev => ({ ...prev, [candidate.id]: noteText }))
+        toast.success('Note saved!', { icon: '📝' })
+    }
+
+    const handleDownloadResume = () => {
+        const resumeContent = `RESUME — ${candidate.name}\n${'='.repeat(40)}\nRole: ${candidate.role}\nExperience: ${candidate.experience}\nSkills: ${candidate.skills.join(', ')}\nAI Match Score: ${candidate.resumeScore}%\n\nGenerated from CareerEdge Platform`
+        const blob = new Blob([resumeContent], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${candidate.name.replace(/\s+/g, '_')}_Resume.txt`
+        a.click()
+        URL.revokeObjectURL(url)
+        toast.success('Resume downloaded!', { icon: '📄' })
+    }
+
+    const handleQuickAction = (action) => {
+        switch (action) {
+            case 'Email':
+                window.open(`mailto:${candidate.name.toLowerCase().replace(/\s/g, '.')}@example.com?subject=Application Update — Goldman Sachs`, '_blank')
+                toast.success(`Email draft opened for ${candidate.name}`)
+                break
+            case 'Share':
+                navigator.clipboard.writeText(`${window.location.origin}/recruiter/applications/${candidate.id}`)
+                toast.success('Profile link copied to clipboard!', { icon: '🔗' })
+                break
+            case 'Print':
+                toast.success('Preparing print view...', { icon: '🖨️' })
+                setTimeout(() => window.print(), 500)
+                break
+            case 'Archive':
+                toast.success(`${candidate.name} archived`, { icon: '📦' })
+                break
+        }
+    }
+
+    // Load saved note for current candidate
+    const currentNote = savedNotes[candidate?.id] || ''
+
     return (
         <div className="flex h-[calc(100vh-73px)] -m-8 -mt-0">
             {/* Left Panel: Applicant List */}
@@ -42,7 +107,7 @@ export default function ApplicationReview() {
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-bold">Applications</h3>
-                        <span className="text-xs text-slate-500 font-medium">{recruiterApplications.length} candidates</span>
+                        <span className="text-xs text-slate-500 font-medium">{applications.length} candidates</span>
                     </div>
                     {/* Search */}
                     <div className="relative mb-3">
@@ -62,43 +127,62 @@ export default function ApplicationReview() {
 
                 {/* Applicant List */}
                 <div className="flex-1 overflow-y-auto">
-                    {recruiterApplications.map((app, i) => (
-                        <div key={app.id} onClick={() => setSelected(i)}
-                            className={`group flex flex-col gap-2 p-4 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors border-l-4 ${selected === i ? 'border-l-primary bg-primary/5' : 'border-l-transparent'}`}>
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="relative">
-                                        <div className="size-12 rounded-full bg-slate-200 dark:bg-slate-700 shadow-sm"></div>
-                                        {app.online && <span className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
+                    {filteredApps.map((app, i) => {
+                        const origIdx = applications.findIndex(a => a.id === app.id)
+                        return (
+                            <div key={app.id} onClick={() => setSelected(origIdx)}
+                                className={`group flex flex-col gap-2 p-4 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors border-l-4 ${selected === origIdx ? 'border-l-primary bg-primary/5' : 'border-l-transparent'}`}>
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative">
+                                            <div className="size-12 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                                {app.name.split(' ').map(n => n[0]).join('')}
+                                            </div>
+                                            {app.online && <span className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{app.name}</h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{app.role} • {app.experience}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{app.name}</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{app.role} • {app.experience}</p>
+                                    <div className="flex flex-col items-end gap-1">
+                                        {app.appStatus === 'Shortlisted' ? (
+                                            <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded text-xs font-bold">
+                                                ✓ Shortlisted
+                                            </div>
+                                        ) : app.appStatus === 'Rejected' ? (
+                                            <div className="flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded text-xs font-bold">
+                                                ✕ Rejected
+                                            </div>
+                                        ) : app.resumeScore >= 90 ? (
+                                            <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded text-xs font-bold">
+                                                {app.resumeScore}%
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 px-2 py-0.5 rounded text-xs font-bold">
+                                                {app.resumeScore}%
+                                            </div>
+                                        )}
+                                        <span className="text-[10px] text-slate-400 font-medium">{app.appliedAgo}</span>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    {app.resumeScore >= 90 ? (
-                                        <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded text-xs font-bold">
-                                            {app.resumeScore}%
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 px-2 py-0.5 rounded text-xs font-bold">
-                                            {app.resumeScore}%
-                                        </div>
-                                    )}
-                                    <span className="text-[10px] text-slate-400 font-medium">{app.appliedAgo}</span>
+                                <div className="mt-2 flex items-center justify-between">
+                                    <div className="flex gap-2">
+                                        {app.skills.slice(0, 2).map(skill => (
+                                            <span key={skill} className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300">{skill}</span>
+                                        ))}
+                                    </div>
+                                    {app.matchLabel && <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">{app.matchLabel}</span>}
                                 </div>
                             </div>
-                            <div className="mt-2 flex items-center justify-between">
-                                <div className="flex gap-2">
-                                    {app.skills.slice(0, 2).map(skill => (
-                                        <span key={skill} className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300">{skill}</span>
-                                    ))}
-                                </div>
-                                {app.matchLabel && <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">{app.matchLabel}</span>}
-                            </div>
+                        )
+                    })}
+                    {filteredApps.length === 0 && (
+                        <div className="p-8 text-center">
+                            <span className="material-symbols-outlined text-4xl text-slate-300 block mb-2">person_off</span>
+                            <p className="text-sm text-slate-500">No {filter.toLowerCase()} candidates</p>
                         </div>
-                    ))}
+                    )}
                 </div>
             </aside>
 
@@ -107,35 +191,51 @@ export default function ApplicationReview() {
                 {/* Detail Header */}
                 <div className="bg-white dark:bg-slate-900 px-8 py-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-start shrink-0">
                     <div className="flex gap-6">
-                        <div className="size-24 rounded-xl bg-slate-200 dark:bg-slate-700 shadow-md shrink-0"></div>
+                        <div className="size-24 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-md shrink-0">
+                            {candidate.name.split(' ').map(n => n[0]).join('')}
+                        </div>
                         <div>
                             <div className="flex items-center gap-3">
                                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{candidate.name}</h1>
-                                <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2.5 py-0.5 rounded-full text-xs font-bold border border-green-200 dark:border-green-800">Available immediately</span>
+                                {candidate.appStatus === 'Shortlisted' && (
+                                    <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2.5 py-0.5 rounded-full text-xs font-bold border border-green-200 dark:border-green-800">Shortlisted ✓</span>
+                                )}
+                                {candidate.appStatus === 'Rejected' && (
+                                    <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 px-2.5 py-0.5 rounded-full text-xs font-bold border border-red-200 dark:border-red-800">Rejected</span>
+                                )}
+                                {candidate.appStatus === 'Pending' && (
+                                    <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2.5 py-0.5 rounded-full text-xs font-bold border border-green-200 dark:border-green-800">Available immediately</span>
+                                )}
                             </div>
                             <p className="text-slate-500 dark:text-slate-400 text-lg mt-1">{candidate.role} • {candidate.experience} Experience</p>
                             <div className="flex gap-4 mt-4">
-                                <a className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">
+                                <a className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="https://linkedin.com" target="_blank" rel="noreferrer">
                                     <span className="material-symbols-outlined text-[18px]">link</span> LinkedIn
                                 </a>
-                                <a className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">
+                                <a className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="https://github.com" target="_blank" rel="noreferrer">
                                     <span className="material-symbols-outlined text-[18px]">code</span> GitHub
                                 </a>
-                                <a className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">
+                                <button onClick={handleDownloadResume} className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-primary transition-colors">
                                     <span className="material-symbols-outlined text-[18px]">description</span> Download Resume
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div className="flex flex-col gap-3 items-end">
-                        <div className="flex gap-3">
-                            <button className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[18px]">close</span> Reject
-                            </button>
-                            <button className="px-6 py-2 bg-primary text-white hover:bg-blue-700 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[18px]">check</span> Verify & Shortlist
-                            </button>
-                        </div>
+                        {candidate.appStatus === 'Pending' ? (
+                            <div className="flex gap-3">
+                                <button onClick={handleReject} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-bold shadow-sm transition-all flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">close</span> Reject
+                                </button>
+                                <button onClick={handleShortlist} className="px-6 py-2 bg-primary text-white hover:bg-blue-700 rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">check</span> Verify & Shortlist
+                                </button>
+                            </div>
+                        ) : (
+                            <span className={`px-4 py-2 rounded-lg text-sm font-bold ${candidate.appStatus === 'Shortlisted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {candidate.appStatus === 'Shortlisted' ? '✓ Shortlisted' : '✕ Rejected'}
+                            </span>
+                        )}
                         <p className="text-xs text-slate-400">Review expires in 2 days</p>
                     </div>
                 </div>
@@ -251,22 +351,28 @@ export default function ApplicationReview() {
                                     <p className="text-sm text-slate-500 mb-2">Suggested Slots (Based on your calendar)</p>
                                     <div className="space-y-2">
                                         {slots.map((s, i) => (
-                                            <button key={i} className={`w-full py-2 px-3 rounded text-sm font-medium transition-all flex justify-between items-center ${s.primary ? 'bg-white dark:bg-slate-900 border border-primary/30 text-primary hover:bg-primary hover:text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-300 hover:border-primary/50'}`}>
+                                            <button key={i} onClick={() => handleScheduleSlot(s)}
+                                                className={`w-full py-2 px-3 rounded text-sm font-medium transition-all flex justify-between items-center ${s.primary ? 'bg-white dark:bg-slate-900 border border-primary/30 text-primary hover:bg-primary hover:text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-300 hover:border-primary/50'}`}>
                                                 <span>{s.label}</span>
                                                 <span className="material-symbols-outlined text-[16px]">add_circle</span>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                                <button className="w-full text-center text-sm text-slate-500 font-medium hover:text-primary underline">View Full Calendar</button>
+                                <button onClick={() => toast('Full calendar coming soon!', { icon: '📅' })} className="w-full text-center text-sm text-slate-500 font-medium hover:text-primary underline">View Full Calendar</button>
                             </div>
 
                             {/* Internal Notes */}
                             <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                                 <h3 className="text-md font-bold text-slate-900 dark:text-white mb-4">Internal Notes</h3>
-                                <textarea className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-1 focus:ring-primary resize-none h-32" placeholder="Add a note for the hiring manager..."></textarea>
+                                <textarea
+                                    value={noteText || currentNote}
+                                    onChange={e => setNoteText(e.target.value)}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-none rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-1 focus:ring-primary resize-none h-32"
+                                    placeholder="Add a note for the hiring manager..."
+                                ></textarea>
                                 <div className="flex justify-end mt-2">
-                                    <button className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white text-xs font-bold py-1.5 px-3 rounded transition-colors">Save Note</button>
+                                    <button onClick={handleSaveNote} className="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white text-xs font-bold py-1.5 px-3 rounded transition-colors">Save Note</button>
                                 </div>
                             </div>
 
@@ -280,7 +386,7 @@ export default function ApplicationReview() {
                                         { icon: 'print', label: 'Print' },
                                         { icon: 'archive', label: 'Archive' },
                                     ].map(a => (
-                                        <button key={a.label} className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                        <button key={a.label} onClick={() => handleQuickAction(a.label)} className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                             <span className="material-symbols-outlined text-slate-500">{a.icon}</span>
                                             <span className="text-xs font-medium text-slate-900 dark:text-white">{a.label}</span>
                                         </button>

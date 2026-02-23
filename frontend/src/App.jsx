@@ -33,6 +33,7 @@ import RecruiterDashboard from './pages/recruiter/Dashboard'
 import CreateDrive from './pages/recruiter/CreateDrive'
 import ApplicationReview from './pages/recruiter/ApplicationReview'
 import CompanyProfile from './pages/recruiter/CompanyProfile'
+import RecruiterInterviews from './pages/recruiter/Interviews'
 
 function ProtectedRoute({ children, allowedRole }) {
     const { role } = useAuth()
@@ -81,6 +82,7 @@ export default function App() {
                     <Route index element={<RecruiterDashboard />} />
                     <Route path="create-drive" element={<CreateDrive />} />
                     <Route path="applications" element={<ApplicationReview />} />
+                    <Route path="interviews" element={<RecruiterInterviews />} />
                     <Route path="company-profile" element={<CompanyProfile />} />
                 </Route>
 
