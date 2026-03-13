@@ -1,4 +1,5 @@
 import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 
 export default function Profile() {
     const handleShareProfile = () => {
@@ -128,11 +129,18 @@ Status: Shortlisted (2 Active Companies)
                         </button>
                         <button
                             onClick={handleDownloadResume}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                         >
                             <span className="material-symbols-outlined text-[20px]">download</span>
                             Download Resume
                         </button>
+                        <Link
+                            to="/student/resume-builder"
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                            Edit Profile
+                        </Link>
                     </div>
                 </div>
             </div>

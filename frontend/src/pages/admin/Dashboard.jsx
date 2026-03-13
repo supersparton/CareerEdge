@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 // ─── Mock Student Data ────────────────────────────────────
@@ -38,10 +38,10 @@ const handleExportData = (filteredStudents) => {
 }
 
 export default function AdminDashboard() {
+    const navigate = useNavigate()
     const [statusFilter, setStatusFilter] = useState('all')
     const [deptFilter, setDeptFilter] = useState('All Departments')
     const [searchQuery, setSearchQuery] = useState('')
-
     // ─── Filtered Data ────────────────────────────────────
     const filtered = useMemo(() => {
         return allStudents.filter(s => {
@@ -118,8 +118,8 @@ export default function AdminDashboard() {
                                 key={f.value}
                                 onClick={() => setStatusFilter(f.value)}
                                 className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all ${statusFilter === f.value
-                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700'
+                                    ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
                                     }`}
                             >
                                 <span className="material-symbols-outlined text-base">{f.icon}</span>
@@ -148,16 +148,21 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* Overview KPIs (reactive) */}
+            {/* Overview KPIs (reactive + clickable) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                 {[
-                    { icon: 'group', iconBg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600', label: 'Total Students', value: stats.total.toLocaleString() },
-                    { icon: 'how_to_reg', iconBg: 'bg-green-50 dark:bg-green-900/20 text-green-600', label: 'Placed', value: stats.placed.toLocaleString(), badge: `${stats.pct}%`, badgeColor: 'text-green-500' },
-                    { icon: 'pending', iconBg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600', label: 'Pending', value: stats.pending.toLocaleString() },
-                    { icon: 'apartment', iconBg: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600', label: 'Companies', value: '64' },
+                    { icon: 'group', iconBg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600', label: 'Total Students', value: stats.total.toLocaleString(), onClick: () => navigate('/admin/students') },
+                    { icon: 'how_to_reg', iconBg: 'bg-green-50 dark:bg-green-900/20 text-green-600', label: 'Placed', value: stats.placed.toLocaleString(), badge: `${stats.pct}%`, badgeColor: 'text-green-500', onClick: () => navigate('/admin/students?status=Placed') },
+                    { icon: 'pending', iconBg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600', label: 'Pending', value: stats.pending.toLocaleString(), onClick: () => navigate('/admin/students?status=Unplaced') },
+                    { icon: 'apartment', iconBg: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600', label: 'Companies', value: '64', onClick: () => navigate('/admin/companies') },
                     { icon: 'currency_rupee', iconBg: 'bg-indigo-50 dark:bg-indigo-900/20 text-primary', label: 'Avg. Package', value: `₹${stats.avgPkg}L` },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div
+                        key={stat.label}
+                        onClick={stat.onClick}
+                        className={`bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all ${stat.onClick ? 'cursor-pointer hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 active:scale-[0.98]' : ''
+                            }`}
+                    >
                         <div className="flex items-center justify-between mb-3">
                             <span className={`p-2 ${stat.iconBg} rounded-lg`}>
                                 <span className="material-symbols-outlined">{stat.icon}</span>
@@ -166,6 +171,7 @@ export default function AdminDashboard() {
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">{stat.label}</p>
                         <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+                        {stat.onClick && <p className="text-[10px] text-primary font-semibold mt-2 flex items-center gap-0.5"><span className="material-symbols-outlined text-xs">open_in_new</span>Click to view</p>}
                     </div>
                 ))}
             </div>

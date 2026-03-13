@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 const initialStudents = [
@@ -24,6 +25,7 @@ const bgColors = [
 ]
 
 export default function StudentList() {
+    const [searchParams] = useSearchParams()
     const [students, setStudents] = useState(initialStudents)
     const [showAddModal, setShowAddModal] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
@@ -37,6 +39,16 @@ export default function StudentList() {
     const [selectedIds, setSelectedIds] = useState([])
     const [currentPage, setCurrentPage] = useState(1)
     const perPage = 6
+
+    // ─── Read URL params on mount (from Dashboard KPI click) ──
+    useEffect(() => {
+        const urlStatus = searchParams.get('status')
+        if (urlStatus === 'Placed' || urlStatus === 'Unplaced') {
+            setStatusFilter(urlStatus)
+        }
+        const urlDept = searchParams.get('dept')
+        if (urlDept) setDeptFilter(urlDept)
+    }, [searchParams])
 
     // ─── Filtered + Paginated Results ─────────────────────
     const filtered = useMemo(() => {
@@ -280,8 +292,8 @@ export default function StudentList() {
                                 key={s}
                                 onClick={() => applyFilter(setStatusFilter)(s)}
                                 className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${statusFilter === s
-                                        ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700'
+                                    ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
                                     }`}
                             >
                                 {s}
@@ -456,8 +468,8 @@ export default function StudentList() {
                                 key={page}
                                 onClick={() => setCurrentPage(page)}
                                 className={`size-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors ${currentPage === page
-                                        ? 'bg-primary text-white'
-                                        : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    ? 'bg-primary text-white'
+                                    : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                                     }`}
                             >
                                 {page}
