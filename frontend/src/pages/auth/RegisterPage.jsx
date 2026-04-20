@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 
 // ─── Validation Helpers ───────────────────────────────
@@ -11,8 +12,20 @@ const passwordRules = [
 
 export default function RegisterPage() {
     const navigate = useNavigate()
+    const { register } = useAuth()
     const [step, setStep] = useState(1)
-    const [form, setForm] = useState({ name: '', enrollment: '', department: '', batch: '', email: '', password: '' })
+    const [role, setRole] = useState('student')
+    const [form, setForm] = useState({ 
+        name: '', 
+        enrollment: '', 
+        department: '', 
+        batch: '', 
+        companyName: '',
+        designation: '',
+        adminCode: '',
+        email: '', 
+        password: '' 
+    })
     const [touched, setTouched] = useState({ email: false, password: false })
 
     const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
@@ -22,7 +35,7 @@ export default function RegisterPage() {
         if (!form.email) return 'Email is required'
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(form.email)) return 'Please enter a valid email'
-        if (!form.email.toLowerCase().endsWith('@adaniuni.ac.in')) return 'Must use @adaniuni.ac.in email'
+        if (role === 'student' && !form.email.toLowerCase().endsWith('@adaniuni.ac.in')) return 'Must use @adaniuni.ac.in email'
         return ''
     }
     const emailError = touched.email ? getEmailError() : ''
@@ -33,21 +46,45 @@ export default function RegisterPage() {
 
     const handleNext = (e) => {
         e.preventDefault()
-        if (!form.name || !form.enrollment || !form.department) {
+        if (role === 'student' && (!form.name || !form.enrollment || !form.department)) {
+            toast.error('Please fill in all required fields')
+            return
+        }
+        if (role === 'recruiter' && (!form.name || !form.companyName)) {
+            toast.error('Please fill in all required fields')
+            return
+        }
+        if (role === 'admin' && (!form.name || !form.adminCode)) {
             toast.error('Please fill in all required fields')
             return
         }
         setStep(2)
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         setTouched({ email: true, password: true })
         const eErr = getEmailError()
         if (eErr) { toast.error(eErr); return }
         if (!allPassValid) { toast.error('Password does not meet requirements'); return }
-        toast.success('Account created! Please login.')
-        navigate('/login')
+        
+        const res = await register({
+            email: form.email,
+            password: form.password,
+            role: role,
+            name: form.name,
+            // Role specific fields
+            ...(role === 'student' && { reg_no: form.enrollment, dept: form.department, batch: form.batch }),
+            ...(role === 'recruiter' && { company_name: form.companyName, designation: form.designation }),
+            ...(role === 'admin' && { admin_code: form.adminCode })
+        })
+
+        if (res.success) {
+            toast.success('Account created! Welcome.')
+            navigate(`/${res.role}`)
+        } else {
+            toast.error(res.message)
+        }
     }
 
     return (
@@ -76,15 +113,28 @@ export default function RegisterPage() {
                         <p className="text-gray-500 dark:text-gray-400">Join the elite network of university placements.</p>
                     </div>
 
+                    {/* Role Selection Tabs */}
+                    <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                        {['student', 'recruiter', 'admin'].map(r => (
+                            <button
+                                key={r}
+                                onClick={() => { if(step === 1) setRole(r) }}
+                                className={`flex-1 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${role === r ? 'bg-white dark:bg-gray-700 shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}
+                            >
+                                {r}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Stepper Component */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-1 flex items-center shadow-sm">
                         <div className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold ${step === 1 ? 'bg-primary/10 text-primary' : 'text-gray-400 dark:text-gray-500'}`}>
                             <span className="material-symbols-outlined text-lg">person</span>
-                            <span>Step 1: Account Info</span>
+                            <span>Step 1: {role.charAt(0).toUpperCase() + role.slice(1)} Info</span>
                         </div>
                         <div className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm ${step === 2 ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-400 dark:text-gray-500 font-medium'}`}>
                             <span className="material-symbols-outlined text-lg">verified_user</span>
-                            <span>Step 2: Verification</span>
+                            <span>Step 2: Security</span>
                         </div>
                     </div>
 
@@ -92,85 +142,108 @@ export default function RegisterPage() {
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-8 shadow-sm">
                         {step === 1 ? (
                             <form onSubmit={handleNext} className="space-y-5">
-                                {/* Full Name */}
+                                {/* Common Name Field */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">Full Name</label>
-                                    <div className="relative">
-                                        <input
-                                            value={form.name}
-                                            onChange={e => update('name', e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
-                                            placeholder="e.g. John Doe"
-                                            required
-                                            type="text"
-                                        />
-                                    </div>
-                                </div>
-                                {/* Enrollment Number */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Enrollment Number</label>
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Full Name</label>
                                     <input
-                                        value={form.enrollment}
-                                        onChange={e => update('enrollment', e.target.value)}
+                                        value={form.name}
+                                        onChange={e => update('name', e.target.value)}
                                         className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
-                                        placeholder="Enter your university ID"
+                                        placeholder="e.g. John Doe"
                                         required
                                         type="text"
                                     />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Department */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Department</label>
-                                        <div className="relative">
-                                            <select
-                                                value={form.department}
-                                                onChange={e => update('department', e.target.value)}
-                                                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white appearance-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all cursor-pointer"
+
+                                {role === 'student' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Enrollment Number</label>
+                                            <input
+                                                value={form.enrollment}
+                                                onChange={e => update('enrollment', e.target.value)}
+                                                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
+                                                placeholder="Enter your university ID"
                                                 required
-                                            >
-                                                <option disabled value="">Select Department</option>
-                                                <option value="cs">Computer Science</option>
-                                                <option value="ee">Electrical Engineering</option>
-                                                <option value="me">Mechanical Engineering</option>
-                                                <option value="ce">Civil Engineering</option>
-                                                <option value="it">Information Technology</option>
-                                            </select>
-                                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
-                                                <span className="material-symbols-outlined">expand_more</span>
+                                                type="text"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Department</label>
+                                                <select
+                                                    value={form.department}
+                                                    onChange={e => update('department', e.target.value)}
+                                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
+                                                    required
+                                                >
+                                                    <option disabled value="">Select Dept</option>
+                                                    <option value="cs">Computer Science</option>
+                                                    <option value="it">Information Technology</option>
+                                                    <option value="ee">Electrical</option>
+                                                    <option value="me">Mechanical</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Batch Year</label>
+                                                <input
+                                                    type="number"
+                                                    value={form.batch}
+                                                    onChange={e => update('batch', e.target.value)}
+                                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white"
+                                                    placeholder="2024"
+                                                    required
+                                                />
                                             </div>
                                         </div>
-                                    </div>
-                                    {/* Batch Year */}
+                                    </>
+                                )}
+
+                                {role === 'recruiter' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Company Name</label>
+                                            <input
+                                                value={form.companyName}
+                                                onChange={e => update('companyName', e.target.value)}
+                                                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white"
+                                                placeholder="e.g. Google"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Designation</label>
+                                            <input
+                                                value={form.designation}
+                                                onChange={e => update('designation', e.target.value)}
+                                                className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white"
+                                                placeholder="e.g. HR Manager"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {role === 'admin' && (
                                     <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Batch Year</label>
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Admin Authorization Code</label>
                                         <input
-                                            type="number"
-                                            value={form.batch}
-                                            onChange={e => update('batch', e.target.value)}
-                                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
-                                            placeholder="e.g. 2024"
-                                            min="2000"
-                                            max="2030"
+                                            value={form.adminCode}
+                                            onChange={e => update('adminCode', e.target.value)}
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-3 px-4 text-gray-900 dark:text-white"
+                                            placeholder="Enter secret code"
+                                            required
+                                            type="password"
                                         />
                                     </div>
-                                </div>
-                                {/* Action Button */}
+                                )}
+
                                 <div className="pt-4">
                                     <button
                                         type="submit"
-                                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98]"
+                                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg shadow-lg"
                                     >
-                                        <span>Create Account</span>
-                                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                                        Continue to Step 2
                                     </button>
-                                </div>
-                                {/* Alternative Link */}
-                                <div className="text-center pt-2">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Already have an account?{' '}
-                                        <Link className="text-primary font-semibold hover:underline decoration-2 underline-offset-4 transition-all" to="/login">Log in here</Link>
-                                    </p>
                                 </div>
                             </form>
                         ) : (
@@ -182,12 +255,11 @@ export default function RegisterPage() {
                                         value={form.email}
                                         onChange={e => update('email', e.target.value)}
                                         onBlur={() => setTouched(t => ({ ...t, email: true }))}
-                                        className={`w-full bg-gray-50 dark:bg-gray-800 border rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all ${emailError ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
-                                        placeholder="you@adaniuni.ac.in"
+                                        className={`w-full bg-gray-50 dark:bg-gray-800 border rounded-lg py-3 px-4 text-gray-900 dark:text-white ${emailError ? 'border-red-400' : 'border-gray-200'}`}
+                                        placeholder={role === 'student' ? 'you@adaniuni.ac.in' : 'you@company.com'}
                                         required
                                     />
-                                    {emailError && <p className="text-xs text-red-500 flex items-center gap-1"><span className="material-symbols-outlined text-xs">error</span>{emailError}</p>}
-                                    {!emailError && <p className="text-xs text-gray-400">Must use @adaniuni.ac.in domain</p>}
+                                    {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Password</label>
@@ -196,17 +268,15 @@ export default function RegisterPage() {
                                         value={form.password}
                                         onChange={e => update('password', e.target.value)}
                                         onBlur={() => setTouched(t => ({ ...t, password: true }))}
-                                        className={`w-full bg-gray-50 dark:bg-gray-800 border rounded-lg py-3 px-4 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all ${touched.password && !allPassValid ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                                        className={`w-full bg-gray-50 dark:bg-gray-800 border rounded-lg py-3 px-4 text-gray-900 dark:text-white ${touched.password && !allPassValid ? 'border-red-400' : 'border-gray-200'}`}
                                         placeholder="Create a strong password"
                                         required
                                     />
-                                    {/* Real-time password strength checklist */}
                                     {form.password && (
-                                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 space-y-1.5">
-                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Password Requirements</p>
+                                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-1">
                                             {passChecks.map((c, i) => (
-                                                <div key={i} className={`flex items-center gap-2 text-xs font-medium ${c.passed ? 'text-green-600' : 'text-red-500'}`}>
-                                                    <span className="material-symbols-outlined text-sm">{c.passed ? 'check_circle' : 'cancel'}</span>
+                                                <div key={i} className={`text-[10px] flex items-center gap-1 ${c.passed ? 'text-green-600' : 'text-red-400'}`}>
+                                                    <span className="material-symbols-outlined !text-xs">{c.passed ? 'check_circle' : 'cancel'}</span>
                                                     {c.label}
                                                 </div>
                                             ))}
@@ -214,17 +284,8 @@ export default function RegisterPage() {
                                     )}
                                 </div>
                                 <div className="flex gap-3 pt-4">
-                                    <button type="button" onClick={() => setStep(1)} className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold py-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">Back</button>
-                                    <button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                                        <span>Create Account</span>
-                                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                                    </button>
-                                </div>
-                                <div className="text-center pt-2">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Already have an account?{' '}
-                                        <Link className="text-primary font-semibold hover:underline decoration-2 underline-offset-4 transition-all" to="/login">Log in here</Link>
-                                    </p>
+                                    <button type="button" onClick={() => setStep(1)} className="flex-1 border dark:border-gray-700 text-gray-500 font-bold py-4 rounded-lg">Back</button>
+                                    <button type="submit" className="flex-1 bg-primary text-white font-bold py-4 rounded-lg shadow-lg">Complete Sign Up</button>
                                 </div>
                             </form>
                         )}

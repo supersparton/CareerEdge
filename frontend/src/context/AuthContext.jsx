@@ -1,35 +1,47 @@
 import { createContext, useContext, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import api from '../api'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
     const [auth, setAuth] = useState(() => {
         const saved = localStorage.getItem('placement_auth')
-        return saved ? JSON.parse(saved) : { role: null, user: null }
+        return saved ? JSON.parse(saved) : { role: null, user: null, token: null }
     })
 
-    const login = (role, userData) => {
-        const data = {
-            role,
-            user: userData || {
-                name: role === 'student' ? 'Alex Johnson' : role === 'admin' ? 'Training & Placement' : 'Sarah Mitchell',
-                email: role === 'student' ? 'alex.johnson@university.edu' : role === 'admin' ? 'tpo@university.edu' : 'sarah@techcorp.com',
-                avatar: role === 'student' ? 'AJ' : role === 'admin' ? 'TP' : 'SM',
-                subtitle: role === 'student' ? 'B.Tech CS, 2024' : role === 'admin' ? 'Coordinator' : 'HR Manager, TechCorp'
-            }
+    const login = async (email, password) => {
+        try {
+            const res = await api.post('/auth/login', { email, password })
+            const { token, role, user } = res.data
+            const data = { role, user, token }
+            setAuth(data)
+            localStorage.setItem('placement_auth', JSON.stringify(data))
+            return { success: true, role }
+        } catch (err) {
+            return { success: false, message: err.response?.data?.message || 'Login failed' }
         }
-        setAuth(data)
-        localStorage.setItem('placement_auth', JSON.stringify(data))
+    }
+
+    const register = async (userData) => {
+        try {
+            const res = await api.post('/auth/register', userData)
+            const { token, role, user } = res.data
+            const data = { role, user, token }
+            setAuth(data)
+            localStorage.setItem('placement_auth', JSON.stringify(data))
+            return { success: true, role }
+        } catch (err) {
+            return { success: false, message: err.response?.data?.message || 'Registration failed' }
+        }
     }
 
     const logout = () => {
-        setAuth({ role: null, user: null })
+        setAuth({ role: null, user: null, token: null })
         localStorage.removeItem('placement_auth')
     }
 
     return (
-        <AuthContext.Provider value={{ ...auth, login, logout }}>
+        <AuthContext.Provider value={{ ...auth, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     )

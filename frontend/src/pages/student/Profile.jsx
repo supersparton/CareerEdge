@@ -282,6 +282,41 @@ Status: Shortlisted (2 Active Companies)
                             </div>
                         </div>
                     </section>
+
+                    {/* Recommended Drives (Mock) */}
+                    <section>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">work</span>
+                                Recommended Drives
+                            </h2>
+                            <Link to="/student/job-drives" className="text-sm text-primary font-medium hover:underline">View All Drives</Link>
+                        </div>
+                        <div className="space-y-4">
+                            {[
+                                { company: 'Google', role: 'Software Engineer (L3)', package: '₹45 LPA', location: 'Bangalore, India', date: 'Oct 25, 2024', logo: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' },
+                                { company: 'Microsoft', role: 'Full Stack Intern', package: '₹12 LPA', location: 'Hyderabad, India (Remote)', date: 'Nov 02, 2024', logo: 'https://cdn-icons-png.flaticon.com/512/732/732221.png' },
+                                { company: 'Amazon', role: 'SDE-1 (AWS)', package: '₹32 LPA', location: 'Direct Placement', date: 'Oct 30, 2024', logo: 'https://cdn-icons-png.flaticon.com/512/5969/5969032.png' },
+                            ].map((job, i) => (
+                                <div key={i} className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-primary/30 transition-all group">
+                                    <div className="size-12 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                                        <img src={job.logo} alt={job.company} className="size-8 object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h4 className="font-bold text-slate-900 dark:text-white truncate">{job.role}</h4>
+                                            <span className="text-xs font-bold text-green-600 shrink-0">{job.package}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">apartment</span> {job.company}</span>
+                                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">location_on</span> {job.location}</span>
+                                        </div>
+                                    </div>
+                                    <button className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-all">Apply</button>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
                 </div>
 
                 {/* Right Column */}

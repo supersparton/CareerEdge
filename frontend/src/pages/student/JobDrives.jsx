@@ -1,38 +1,82 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import toast from 'react-hot-toast'
-
-const allDrives = [
-    {
-        icon: 'token', iconColor: 'text-primary', category: 'Tech', categoryBg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-        title: 'Software Engineer', company: 'Goldman Sachs', packageValue: 24, package: '22.0 - 26.5 LPA', location: 'Bengaluru, KA', locationType: 'onsite', deadline: 'Deadline: Oct 24, 2023',
-        eligible: true, isNew: false, roleType: 'Software Engineer',
-    },
-    {
-        icon: 'auto_awesome', iconColor: 'text-red-500', category: 'Design', categoryBg: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-        title: 'Senior UX Designer', company: 'Adobe Systems', packageValue: 19, package: '18.0 - 20.0 LPA', location: 'Noida, UP', locationType: 'onsite', deadline: 'Deadline: Oct 18, 2023',
-        eligible: false, isNew: false, roleType: 'Product Design',
-    },
-    {
-        icon: 'database', iconColor: 'text-slate-900 dark:text-white', category: 'Big Data', categoryBg: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
-        title: 'Data Scientist I', company: 'Google India', packageValue: 38, package: '32.0 - 45.0 LPA', location: 'Remote / Hyderabad', locationType: 'remote', deadline: null,
-        eligible: true, isNew: false, roleType: 'Data Analyst', appliedDate: 'Applied on Oct 12',
-    },
-    {
-        icon: 'terminal', iconColor: 'text-blue-500', category: 'Product', categoryBg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-        title: 'Product Manager Intern', company: 'Microsoft', packageValue: 18, package: '1.5 Lacs / Month', location: 'Hyderabad, TS', locationType: 'onsite', deadline: 'Deadline: Nov 02, 2023',
-        eligible: true, isNew: true, roleType: 'Business Analyst',
-    },
-]
-
-const roleTypes = ['Software Engineer', 'Data Analyst', 'Product Design', 'Business Analyst']
+import api from '../../api'
 
 export default function JobDrives() {
+    const [drives, setDrives] = useState([])
+    const [loading, setLoading] = useState(true)
     const [packageRange, setPackageRange] = useState(0)
-    const [selectedRoles, setSelectedRoles] = useState(['Software Engineer'])
+    const [selectedRoles, setSelectedRoles] = useState([])
     const [locationFilter, setLocationFilter] = useState('All Locations')
     const [sortOrder, setSortOrder] = useState('default')
     const [showSortMenu, setShowSortMenu] = useState(false)
-    const [appliedDrives, setAppliedDrives] = useState(new Set())
+    const [appliedDriveIds, setAppliedDriveIds] = useState(new Set())
+
+    useEffect(() => {
+        const fetchDrives = async () => {
+            try {
+                const [drivesRes, appsRes] = await Promise.all([
+                    api.get('/student/drives'),
+                    api.get('/student/applications')
+                ])
+                
+                // Fallback mock data if database is empty
+                const fetchedDrives = drivesRes.data.length > 0 ? drivesRes.data : [
+                    {
+                        id: 'm1',
+                        role: 'Software Engineer',
+                        package: '₹45 LPA',
+                        location: 'Bangalore, India',
+                        drive_date: '2024-10-25',
+                        job_type: 'Full-time',
+                        companies: { name: 'Google' }
+                    },
+                    {
+                        id: 'm2',
+                        role: 'Data Scientist',
+                        package: '₹38 LPA',
+                        location: 'Hyderabad, India',
+                        drive_date: '2024-11-05',
+                        job_type: 'Full-time',
+                        companies: { name: 'Meta' }
+                    },
+                    {
+                        id: 'm3',
+                        role: 'UX Designer',
+                        package: '₹22 LPA',
+                        location: 'Remote',
+                        drive_date: '2024-10-28',
+                        job_type: 'Internship',
+                        companies: { name: 'Airbnb' }
+                    },
+                    {
+                        id: 'm4',
+                        role: 'Backend Developer',
+                        package: '₹28 LPA',
+                        location: 'Mumbai, India',
+                        drive_date: '2024-11-12',
+                        job_type: 'Full-time',
+                        companies: { name: 'Netflix' }
+                    }
+                ]
+
+                const mockApps = JSON.parse(localStorage.getItem('mock_apps') || '[]')
+                const allAppliedIds = new Set([
+                    ...appsRes.data.map(app => app.drive_id),
+                    ...mockApps.map(app => app.drive_id)
+                ])
+
+                setDrives(fetchedDrives)
+                setAppliedDriveIds(allAppliedIds)
+            } catch (err) {
+                console.error('Error fetching drives:', err)
+                toast.error('Failed to load placement drives')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchDrives()
+    }, [])
 
     const handleRoleToggle = (role) => {
         setSelectedRoles(prev => {
@@ -44,46 +88,81 @@ export default function JobDrives() {
         })
     }
 
-    const handleApply = (driveIndex, companyName) => {
-        setAppliedDrives(prev => new Set([...prev, driveIndex]))
-        toast.success(`Applied to ${companyName}!`, { icon: '🎉' })
-    }
-
-    const filteredDrives = useMemo(() => {
-        let result = allDrives.map((d, i) => ({ ...d, originalIndex: i }))
-
-        // Filter by role type (if any selected)
-        if (selectedRoles.length > 0) {
-            result = result.filter(d => selectedRoles.includes(d.roleType))
+    const handleApply = async (driveId, companyName) => {
+        // Handle Mock Drives
+        if (typeof driveId === 'string' && driveId.startsWith('m')) {
+            const drive = drives.find(d => d.id === driveId)
+            const mockApp = {
+                id: `app_${Date.now()}`,
+                drive_id: driveId,
+                applied_date: new Date().toISOString(),
+                status: 'Applied',
+                stage: 'Resume Screen',
+                drives: drive // Match the structure expected by Dashboard
+            }
+            
+            const existing = JSON.parse(localStorage.getItem('mock_apps') || '[]')
+            localStorage.setItem('mock_apps', JSON.stringify([mockApp, ...existing]))
+            
+            setAppliedDriveIds(prev => new Set([...prev, driveId]))
+            toast.success(`Applied to ${companyName}! (Mock)`, { icon: '🎉' })
+            return
         }
 
-        // Filter by package range
+        // Real API call for actual drives
+        try {
+            await api.post('/student/apply', { driveId })
+            setAppliedDriveIds(prev => new Set([...prev, driveId]))
+            toast.success(`Applied to ${companyName}!`, { icon: '🎉' })
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to apply')
+        }
+    }
+
+    const roleTypes = useMemo(() => {
+        const roles = new Set(drives.map(d => d.role))
+        return Array.from(roles)
+    }, [drives])
+
+    const filteredDrives = useMemo(() => {
+        let result = [...drives]
+
+        // Filter by role type
+        if (selectedRoles.length > 0) {
+            result = result.filter(d => selectedRoles.includes(d.role))
+        }
+
+        // Filter by package range (parsing something like "₹45 LPA")
         if (packageRange > 0) {
-            result = result.filter(d => d.packageValue >= packageRange)
+            result = result.filter(d => {
+                const val = parseInt(d.package?.replace(/[^0-9]/g, '') || '0')
+                return val >= packageRange
+            })
         }
 
         // Filter by location
         if (locationFilter === 'Remote Only') {
-            result = result.filter(d => d.locationType === 'remote')
+            result = result.filter(d => d.location?.toLowerCase().includes('remote'))
         } else if (locationFilter === 'On-site') {
-            result = result.filter(d => d.locationType === 'onsite')
+            result = result.filter(d => !d.location?.toLowerCase().includes('remote'))
         }
 
         // Sort
         if (sortOrder === 'package-high') {
-            result.sort((a, b) => b.packageValue - a.packageValue)
+            result.sort((a, b) => parseInt(b.package?.replace(/[^0-9]/g, '') || '0') - parseInt(a.package?.replace(/[^0-9]/g, '') || '0'))
         } else if (sortOrder === 'package-low') {
-            result.sort((a, b) => a.packageValue - b.packageValue)
+            result.sort((a, b) => parseInt(a.package?.replace(/[^0-9]/g, '') || '0') - parseInt(b.package?.replace(/[^0-9]/g, '') || '0'))
         }
 
         return result
-    }, [selectedRoles, packageRange, locationFilter, sortOrder])
+    }, [drives, selectedRoles, packageRange, locationFilter, sortOrder])
 
     const getDriveStatus = (drive) => {
-        if (appliedDrives.has(drive.originalIndex) || drive.appliedDate) return 'applied'
-        if (!drive.eligible) return 'not-eligible'
+        if (appliedDriveIds.has(drive.id)) return 'applied'
         return 'eligible'
     }
+
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading placement drives...</div>
 
     return (
         <div className="flex gap-8">
@@ -138,11 +217,6 @@ export default function JobDrives() {
                         </div>
                     </div>
                 </div>
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                    <p className="text-xs font-semibold text-primary uppercase mb-1">Upcoming Milestone</p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-snug">Google Pre-Placement Talk starts in 2 hours.</p>
-                    <button className="mt-3 text-xs font-bold text-primary hover:underline">Set Reminder</button>
-                </div>
             </aside>
 
             {/* Main Content */}
@@ -150,7 +224,7 @@ export default function JobDrives() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Active Placement Drives</h2>
-                        <p className="text-slate-500 text-sm mt-1">{filteredDrives.length} Job roles matching your preferences for Batch 2024</p>
+                        <p className="text-slate-500 text-sm mt-1">{filteredDrives.length} Job roles matching your preferences</p>
                     </div>
                     <div className="flex gap-2">
                         <div className="relative">
@@ -179,9 +253,6 @@ export default function JobDrives() {
                                 </div>
                             )}
                         </div>
-                        <button className="lg:hidden px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors">
-                            <span className="material-symbols-outlined !text-lg">filter_list</span> Filters
-                        </button>
                     </div>
                 </div>
 
@@ -191,26 +262,20 @@ export default function JobDrives() {
                         <div className="col-span-2 text-center py-16">
                             <span className="material-symbols-outlined text-5xl text-slate-300 mb-4 block">search_off</span>
                             <h3 className="text-lg font-bold text-slate-400">No drives match your filters</h3>
-                            <p className="text-sm text-slate-400 mt-1">Try adjusting your filters to see more results</p>
                         </div>
                     ) : filteredDrives.map((drive) => {
                         const status = getDriveStatus(drive)
                         return (
-                            <div key={drive.originalIndex} className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 relative ${status === 'not-eligible' ? 'opacity-90' : ''}`}>
-                                {drive.isNew && (
-                                    <div className="absolute top-3 right-3">
-                                        <div className="px-2 py-0.5 bg-primary text-white text-[10px] font-bold rounded-full animate-pulse">NEW</div>
-                                    </div>
-                                )}
+                            <div key={drive.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 relative">
                                 <div className="p-6 flex-1">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                            <span className={`material-symbols-outlined ${drive.iconColor} !text-3xl`}>{drive.icon}</span>
+                                        <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center p-3 border border-slate-100 dark:border-slate-700">
+                                            <span className="material-symbols-outlined text-primary !text-3xl">apartment</span>
                                         </div>
-                                        <span className={`px-2 py-1 ${drive.categoryBg} text-[10px] font-bold uppercase rounded tracking-wide`}>{drive.category}</span>
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded tracking-wide">{drive.job_type}</span>
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{drive.title}</h3>
-                                    <p className="text-slate-500 text-sm font-medium mb-4">{drive.company}</p>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{drive.role}</h3>
+                                    <p className="text-slate-500 text-sm font-medium mb-4">{drive.companies?.name}</p>
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                                             <span className="material-symbols-outlined !text-lg opacity-70">payments</span>
@@ -220,64 +285,28 @@ export default function JobDrives() {
                                             <span className="material-symbols-outlined !text-lg opacity-70">location_on</span>
                                             <span className="text-sm">{drive.location}</span>
                                         </div>
-                                        {drive.deadline ? (
-                                            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                                                <span className="material-symbols-outlined !text-lg opacity-70">event</span>
-                                                <span className="text-sm">{drive.deadline}</span>
-                                            </div>
-                                        ) : drive.appliedDate && status === 'applied' && !appliedDrives.has(drive.originalIndex) ? (
-                                            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
-                                                <span className="material-symbols-outlined !text-lg">done_all</span>
-                                                <span className="text-sm">{drive.appliedDate}</span>
-                                            </div>
-                                        ) : null}
+                                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                                            <span className="material-symbols-outlined !text-lg opacity-70">event</span>
+                                            <span className="text-sm">{new Date(drive.drive_date).toLocaleDateString()}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="mt-auto">
-                                    {status === 'eligible' && (
-                                        <>
-                                            <div className="px-6 py-2 bg-emerald-50 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-900/30">
-                                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                                    <span className="material-symbols-outlined !text-sm">check_circle</span> You are Eligible
-                                                </p>
-                                            </div>
-                                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
-                                                <button
-                                                    onClick={() => handleApply(drive.originalIndex, drive.company)}
-                                                    className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-primary/20"
-                                                >
-                                                    One-Click Apply
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {status === 'not-eligible' && (
-                                        <>
-                                            <div className="px-6 py-2 bg-red-50 dark:bg-red-900/10 border-t border-red-100 dark:border-red-900/30">
-                                                <p className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
-                                                    <span className="material-symbols-outlined !text-sm">error</span> Not Eligible: CPI &lt; 8.0
-                                                </p>
-                                            </div>
-                                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
-                                                <button className="w-full py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-lg font-bold text-sm cursor-not-allowed" disabled>
-                                                    Application Closed
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                    {status === 'applied' && (
-                                        <>
-                                            <div className="px-6 py-2 bg-emerald-50 dark:bg-emerald-900/10 border-t border-emerald-100 dark:border-emerald-900/30">
-                                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                                    <span className="material-symbols-outlined !text-sm">check_circle</span> Application Submitted
-                                                </p>
-                                            </div>
-                                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
-                                                <button className="w-full py-2.5 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-lg font-bold text-sm cursor-default flex items-center justify-center gap-2">
-                                                    <span className="material-symbols-outlined !text-lg">check</span> Applied ✓
-                                                </button>
-                                            </div>
-                                        </>
+                                    {status === 'applied' ? (
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+                                            <button className="w-full py-2.5 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-lg font-bold text-sm cursor-default flex items-center justify-center gap-2">
+                                                <span className="material-symbols-outlined !text-lg">check</span> Applied ✓
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50">
+                                            <button
+                                                onClick={() => handleApply(drive.id, drive.companies?.name)}
+                                                className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-primary/20"
+                                            >
+                                                One-Click Apply
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -287,7 +316,7 @@ export default function JobDrives() {
 
                 {/* Pagination */}
                 <div className="mt-12 py-6 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-slate-500">Showing {filteredDrives.length} of {allDrives.length} active recruitment drives</p>
+                    <p className="text-sm text-slate-500">Showing {filteredDrives.length} of {drives.length} active recruitment drives</p>
                     <div className="flex gap-2">
                         <button className="p-2 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800">
                             <span className="material-symbols-outlined">chevron_left</span>

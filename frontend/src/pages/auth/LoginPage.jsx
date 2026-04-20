@@ -35,16 +35,21 @@ export default function LoginPage() {
     const emailError = touched.email ? validateEmail(email, role) : ''
     const passwordErrors = touched.password ? validatePassword(password) : []
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         setTouched({ email: true, password: true })
         const eErr = validateEmail(email, role)
         const pErrs = validatePassword(password)
         if (eErr) { toast.error(eErr); return }
         if (pErrs.length > 0) { toast.error(pErrs[0]); return }
-        login(role)
-        toast.success(`Welcome! Logged in as ${role}`)
-        navigate(`/${role}`)
+        
+        const res = await login(email, password)
+        if (res.success) {
+            toast.success(`Welcome! Logged in as ${res.role}`)
+            navigate(`/${res.role}`)
+        } else {
+            toast.error(res.message)
+        }
     }
 
     return (

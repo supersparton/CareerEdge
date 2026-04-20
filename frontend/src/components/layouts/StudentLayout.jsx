@@ -69,11 +69,11 @@ export default function StudentLayout() {
                         <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">
-                                <p className="text-xs font-semibold">{user?.name}</p>
-                                <p className="text-[10px] text-slate-500">{user?.subtitle}</p>
+                                <p className="text-xs font-semibold">{user?.name || 'Student'}</p>
+                                <p className="text-[10px] text-slate-500 capitalize">{user?.role}</p>
                             </div>
                             <button onClick={handleLogout} className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white font-bold text-sm" title="Logout">
-                                {user?.avatar}
+                                {user?.name?.charAt(0) || 'S'}
                             </button>
                         </div>
                     </div>
